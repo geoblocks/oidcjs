@@ -1,0 +1,20 @@
+{
+  "name": "oicjs",
+  "version": "0.5.0",
+  "description": "A simple OpenID Connect client typescript implementation",
+  "scripts": {
+    "start": "python3 -m http.server 8000",
+    "prepare": "tsc --pretty && node node_modules/@geoblocks/recast-utils/fix_paths lib",
+    "test": "biome ci ."
+  },
+  "author": "Guillaume Beraudo",
+  "license": "BSD-2-Clause",
+  "files": ["lib/*"],
+  "type": "module",
+  "module": "lib/index.js",
+  "devDependencies": {
+    "@biomejs/biome": "1.5.3",
+    "@geoblocks/recast-utils": "^0.1.0",
+    "typescript": "^5.3.3"
+  }
+}

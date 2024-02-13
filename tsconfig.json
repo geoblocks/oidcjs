@@ -1,0 +1,34 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ES2022",
+    "lib": ["es2022", "dom"],
+    "baseUrl": "./",
+    "skipLibCheck": true,
+
+    "moduleResolution": "Node",
+    "outDir": "./lib",
+    "inlineSourceMap": true,
+
+    "declaration": true,
+    "declarationDir": "./lib/types",
+
+    "declarationMap": true,
+
+    "strict": true,
+    "noImplicitAny": true,
+    "forceConsistentCasingInFileNames": true,
+    "isolatedModules": true,
+    "strictNullChecks": false,
+    "noImplicitOverride": true,
+    "noImplicitReturns": true,
+    "noImplicitThis": true,
+    "noPropertyAccessFromIndexSignature": true,
+    "noUncheckedIndexedAccess": true,
+    "noUnusedLocals": true,
+    "noFallthroughCasesInSwitch": true
+  },
+  "files": [
+    "src/index.ts"
+  ]
+}

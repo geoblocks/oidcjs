@@ -5,7 +5,15 @@
     <script type="module" src="./demo.js"></script>
 </head>
 <body>
-  <button id="login">Log code flow</button><br/>
-  <div>Enable cors + pkce s254</div>
+  <div>
+  <select id="env" name="URL">
+    <option value="staging">Keycloak staging</option>
+    <option value="prod">Keycloak production</option>
+  </select>
+  <button id="login">Log code flow</button>
+  <button onclick="javascript:localStorage.clear(); document.location.reload()">Clear local storage</button>
+  </div>
+  <div>Enable cors (*) + pkce (s254) + redirect URI (http://localhost:8000/)</div>
+  <textarea id="result" readonly rows="20" style="width: 80%;"></textarea>
 </body>
 </html>

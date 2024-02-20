@@ -91,6 +91,13 @@ export class CodeOICClient {
     localStorage.setItem(`oicjs_${key}`, value);
   }
 
+  private lgetAndRemove(key: string): string | null {
+    const k = `oicjs_${key}`;
+    const value = localStorage.getItem(k);
+    localStorage.removeItem(value);
+    return value;
+  }
+
   /**
    * Clear all localstorage keys used by this object.
    */
@@ -110,46 +117,44 @@ export class CodeOICClient {
    *
    * @param search The URLSearchParams of the current URL
    * @return once the state has been handled
+   * @throws
    */
   async handleStateIfInURL(search: URLSearchParams) {
-    const storedState = this.lget("state");
     const debug = this.options.debug;
+
+    // see https://www.oauth.com/oauth2-servers/authorization/the-authorization-response/
+    const state = search.get("state");
+    if (!state) {
+      if (debug) {
+        console.log("No state in URL");
+      }
+      return;
+    }
+
+    const storedState = this.lgetAndRemove("state");
+
     if (debug) {
       console.log("Handling state if in URL...");
     }
     if (!storedState) {
-      if (debug) {
-        console.error("No stored state");
-      }
-      return;
+      throw new Error("No stored state");
     }
 
-    // see https://www.oauth.com/oauth2-servers/authorization/the-authorization-response/
-    const state = search.get("state");
-    const code = search.get("code");
-    if (!state) {
-      if (debug) {
-        console.error("No state in URL");
-      }
-      return;
+    const error = search.get("error");
+    if (error) {
+      const errorDescription = search.get("error_description");
+      throw new Error(`Error: ${error} - ${errorDescription}`);
     }
+
+    const code = search.get("code");
     if (!code) {
-      if (debug) {
-        console.error("No code in URL");
-      }
-      return;
+      throw new Error("No code in URL");
     }
     if (state !== storedState) {
-      if (debug) {
-        console.error("State does not match", state, storedState);
-      }
-      return;
+      throw new Error("State does not match");
     }
 
     await this.retrieveAndStoreTokens(code);
-
-    // clear stored state
-    this.lset("state", "");
   }
 
   /**
@@ -210,7 +215,7 @@ export class CodeOICClient {
    * Start a log in process.
    * This will redirect to the SSO and back to the provided redirect URI.
    */
-  async createAuthorizeAndUpdateLocalStorage(): Promise<string> {
+  async createAuthorizeAndUpdateLocalStorage(scopes: string[]): Promise<string> {
     const debug = this.options.debug;
     if (debug) {
       console.log("Starting loging process");
@@ -222,7 +227,7 @@ export class CodeOICClient {
       response_type: "code",
       client_id: this.options.clientId,
       redirect_uri: this.options.redirectUri,
-      scope: "openid",
+      scope: scopes.join(" "),
       state: state,
       nonce: nonce,
     };
@@ -260,20 +265,34 @@ export class CodeOICClient {
     return this.doTokenQuery(params);
   }
 
+  isActive(token: string): boolean {
+    const payload = this.parseJwtPayload(token);
+    // Add 30 seconds to the expiration time to account for clock skew
+    return payload.exp + 30 > Date.now() / 1000;
+  }
+
   async getActiveToken(): Promise<string> {
-    // const token = this.lget("access_token");
-    // if (!token) {
-    //   return Promise.reject("No token found");
-    // }
-    // let payload = this.parseJwtPayload(token);
-    // const exp = payload.exp;
-    // if (exp + 30 < Date.now() / 1000) {
-    //   return token;
-    // }
+    const accessToken = this.lget("access_token");
+    const debug = this.options.debug;
+    if (!accessToken) {
+      if (debug) {
+        console.log("No access token found");
+      }
+      return "";
+    }
+    if (this.isActive(accessToken)) {
+      return accessToken;
+    }
     const refreshToken = this.lget("refresh_token");
     if (!refreshToken) {
-      return Promise.reject("No refresh token found");
+      if (debug) {
+        console.log("No refresh token found");
+      }
+      return "";
     }
-    return this.refreshToken(refreshToken);
+    if (this.isActive(refreshToken)) {
+      return this.refreshToken(refreshToken);
+    }
+    return "";
   }
 }

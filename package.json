@@ -3,8 +3,9 @@
   "version": "0.5.0",
   "description": "A simple OpenID Connect client typescript implementation",
   "scripts": {
-    "start": "python3 -m http.server 8000",
+    "start": "python3 -m http.server 8000 --bind localhost",
     "prepare": "tsc --pretty && node node_modules/@geoblocks/recast-utils/fix_paths lib",
+    "format": "biome format . --write",
     "test": "biome ci ."
   },
   "author": "Guillaume Beraudo",

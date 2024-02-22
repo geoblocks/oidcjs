@@ -84,15 +84,15 @@ export class CodeOICClient {
   ) {}
 
   private lget(key: string): string | null {
-    return localStorage.getItem(`oicjs_${key}`);
+    return localStorage.getItem(`oidcjs_${key}`);
   }
 
   private lset(key: string, value: string) {
-    localStorage.setItem(`oicjs_${key}`, value);
+    localStorage.setItem(`oidcjs_${key}`, value);
   }
 
   private lgetAndRemove(key: string): string | null {
-    const k = `oicjs_${key}`;
+    const k = `oidcjs_${key}`;
     const value = localStorage.getItem(k);
     localStorage.removeItem(value);
     return value;
@@ -104,7 +104,7 @@ export class CodeOICClient {
   lclear() {
     const keys: string[] = [];
     for (const key in localStorage) {
-      if (key.startsWith("oicjs_")) {
+      if (key.startsWith("oidcjs_")) {
         keys.push(key);
       }
     }

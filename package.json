@@ -1,5 +1,5 @@
 {
-  "name": "@geoblocks/oicjs",
+  "name": "@geoblocks/oidcjs",
   "version": "0.5.1",
   "description": "A simple OpenID Connect client typescript implementation",
   "scripts": {

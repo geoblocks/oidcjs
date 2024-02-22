@@ -8,4 +8,4 @@ See the demo.
 
 ## Npm
 
-A package is published on npm: `@geoblocks/oicjs`.
+A package is published on npm: `@geoblocks/oidcjs`.

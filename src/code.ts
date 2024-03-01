@@ -77,7 +77,7 @@ type TokenResponse = {
   id_token: string;
 };
 
-export class CodeOICClient {
+export class CodeOIDCClient {
   constructor(
     private options: CodeOICClientOptions,
     private wellKnown: WellKnownConfig,

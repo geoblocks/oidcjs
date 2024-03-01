@@ -1,4 +1,4 @@
-import { CodeOICClient } from "./lib/index.js";
+import CodeOIDCClient from "./lib/index.js";
 
 function createClient(env) {
   const mainURL =
@@ -11,7 +11,7 @@ function createClient(env) {
     token_endpoint: `${mainURL}/protocol/openid-connect/token`,
   };
 
-  const client = new CodeOICClient(
+  const client = new CodeOIDCClient(
     {
       redirectUri: "http://localhost:8000/",
       clientId: "schweizmobil-website",

@@ -1,2 +1,3 @@
 export * from "./code";
-export { CodeOIDCClient as default } from "./code";
+import { CodeOIDCClient } from "./code";
+export default CodeOIDCClient;

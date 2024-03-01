@@ -15,6 +15,7 @@
   ],
   "type": "module",
   "module": "lib/index.js",
+  "types": "lib/types/index.d.ts",
   "devDependencies": {
     "@biomejs/biome": "1.5.3",
     "@geoblocks/recast-utils": "^0.1.0",

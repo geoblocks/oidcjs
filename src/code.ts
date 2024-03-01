@@ -1,6 +1,18 @@
 import { generateRandomString, base64urlEncode, sha256, base64urlDecode } from "./utils";
 
 /**
+ * The result of handling the state in the URL.
+ * - "finished" means the authentication process has finished successfully;
+ * - "nothing" means that there was no state in the URL to handle;
+ * - "invalid" means that there was a mismatch between the stored state and URL params;
+ * - "error" means there was an error.
+ */
+export interface HandleStateResult {
+  status: "completed" | "nothing" | "invalid" | "error";
+  msg: string;
+}
+
+/**
  * A typical JWT payload. Probably not really correct.
  */
 interface JWTPayload {
@@ -119,7 +131,7 @@ export class CodeOIDCClient {
    * @return once the state has been handled
    * @throws
    */
-  async handleStateIfInURL(search: URLSearchParams) {
+  async handleStateIfInURL(search: URLSearchParams): Promise<HandleStateResult> {
     const debug = this.options.debug;
 
     // see https://www.oauth.com/oauth2-servers/authorization/the-authorization-response/
@@ -128,7 +140,10 @@ export class CodeOIDCClient {
       if (debug) {
         console.log("No state in URL");
       }
-      return;
+      return {
+        status: "nothing",
+        msg: "No state in URL",
+      };
     }
 
     const storedState = this.lgetAndRemove("state");
@@ -137,24 +152,46 @@ export class CodeOIDCClient {
       console.log("Handling state if in URL...");
     }
     if (!storedState) {
-      throw new Error("No stored state");
+      return {
+        status: "invalid",
+        msg: "No stored state",
+      };
     }
 
     const error = search.get("error");
     if (error) {
-      const errorDescription = search.get("error_description");
-      throw new Error(`Error: ${error} - ${errorDescription}`);
+      return {
+        status: "error",
+        msg: search.get("error_description"),
+      };
     }
 
     const code = search.get("code");
     if (!code) {
-      throw new Error("No code in URL");
+      return {
+        status: "invalid",
+        msg: "No code in URL",
+      };
     }
     if (state !== storedState) {
-      throw new Error("State does not match");
+      return {
+        status: "error",
+        msg: "State does not match",
+      };
     }
 
-    await this.retrieveAndStoreTokens(code);
+    try {
+      await this.retrieveAndStoreTokens(code);
+      return {
+        status: "completed",
+        msg: "Authentication procedure finished",
+      };
+    } catch (e) {
+      return {
+        status: "error",
+        msg: e.toString(),
+      };
+    }
   }
 
   /**

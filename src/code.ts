@@ -121,7 +121,7 @@ export class CodeOIDCClient {
         keys.push(key);
       }
     }
-    for (const key in keys) {
+    for (const key of keys) {
       localStorage.removeItem(key);
     }
   }

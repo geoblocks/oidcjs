@@ -4,7 +4,7 @@
   "description": "A simple OpenID Connect client typescript implementation",
   "scripts": {
     "start": "python3 -m http.server 8000 --bind localhost",
-    "prepare": "tsc --pretty && node node_modules/@geoblocks/recast-utils/fix_paths lib",
+    "prepare": "tsc --pretty",
     "format": "biome format . --write",
     "test": "biome ci ."
   },
@@ -17,7 +17,6 @@
   "types": "lib/types/index.d.ts",
   "devDependencies": {
     "@biomejs/biome": "1.6.2",
-    "@geoblocks/recast-utils": "^0.1.0",
     "typescript": "5.4.3"
   }
 }

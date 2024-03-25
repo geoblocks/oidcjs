@@ -1,4 +1,4 @@
-import { generateRandomString, base64urlEncode, sha256, base64urlDecode } from "./utils";
+import { generateRandomString, base64urlEncode, sha256, base64urlDecode } from "./utils.js";
 
 /**
  * The result of handling the state in the URL.

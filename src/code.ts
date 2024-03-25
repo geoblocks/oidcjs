@@ -95,19 +95,20 @@ export class CodeOIDCClient {
     private wellKnown: WellKnownConfig,
   ) {}
 
-  private lget(key: string): string | null {
-    return localStorage.getItem(`oidcjs_${key}`);
+  private lget(key: string, remove = false): string | null {
+    const k = `oidcjs_${key}`;
+    const v = localStorage.getItem(k);
+    if (v === "undefined") {
+      return undefined;
+    }
+    if (remove) {
+      localStorage.removeItem(k);
+    }
+    return v;
   }
 
   private lset(key: string, value: string) {
     localStorage.setItem(`oidcjs_${key}`, value);
-  }
-
-  private lgetAndRemove(key: string): string | null {
-    const k = `oidcjs_${key}`;
-    const value = localStorage.getItem(k);
-    localStorage.removeItem(value);
-    return value;
   }
 
   /**
@@ -146,7 +147,7 @@ export class CodeOIDCClient {
       };
     }
 
-    const storedState = this.lgetAndRemove("state");
+    const storedState = this.lget("state", true);
 
     if (debug) {
       console.log("Handling state if in URL...");
@@ -236,6 +237,9 @@ export class CodeOIDCClient {
     });
     const data: TokenResponse = await response.json();
     const { access_token, id_token, refresh_token } = data;
+    if (!access_token || !refresh_token || !id_token) {
+      return Promise.reject("Did not reveive tokens");
+    }
     if (this.options.checkToken) {
       const valid = await this.options.checkToken(access_token);
       if (!valid) {
@@ -285,12 +289,21 @@ export class CodeOIDCClient {
     return authorizeUrl;
   }
 
+  /**
+   *
+   * @param token A well-formed token
+   * @return the parsed payload or undefined if the token is not well-formed
+   */
   parseJwtPayload(token: string): JWTPayload {
-    const base64Url = token.split(".")[1];
-    const buffer = base64urlDecode(base64Url);
-    const decoder = new TextDecoder();
-    const payload = decoder.decode(buffer);
-    return JSON.parse(payload);
+    try {
+      const base64Url = token.split(".")[1];
+      const buffer = base64urlDecode(base64Url);
+      const decoder = new TextDecoder();
+      const payload = decoder.decode(buffer);
+      return JSON.parse(payload);
+    } catch {
+      return undefined;
+    }
   }
 
   private async refreshToken(refreshToken: string): Promise<string> {
@@ -304,6 +317,9 @@ export class CodeOIDCClient {
 
   isActive(token: string): boolean {
     const payload = this.parseJwtPayload(token);
+    if (!payload) {
+      return false;
+    }
     // Add 30 seconds to the expiration time to account for clock skew
     return payload.exp + 30 > Date.now() / 1000;
   }

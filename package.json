@@ -10,9 +10,7 @@
   },
   "author": "Guillaume Beraudo",
   "license": "BSD-2-Clause",
-  "files": [
-    "lib/*"
-  ],
+  "files": ["lib/*"],
   "type": "module",
   "module": "lib/index.js",
   "main": "lib/index.js",

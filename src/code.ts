@@ -285,8 +285,11 @@ export class CodeOIDCClient {
       params.code_challenge_method = "S256";
     }
 
-    const authorizeUrl = `${this.wellKnown.authorization_endpoint}?${new URLSearchParams(params)}`;
-    return authorizeUrl;
+    const authorizeUrl = new URL(this.wellKnown.authorization_endpoint);
+    for (const [k, v] of Object.entries(params)) {
+      authorizeUrl.searchParams.append(k, v);
+    }
+    return authorizeUrl.toString();
   }
 
   /**

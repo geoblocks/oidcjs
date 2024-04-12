@@ -13,7 +13,7 @@ function createClient(env) {
       : "https://keycloak.qa.fastforward.ch/realms/smobil-staging";
 
   const wellKnown = {
-    authorization_endpoint: `${mainURL}/protocol/openid-connect/auth`,
+    authorization_endpoint: `${mainURL}/protocol/openid-connect/auth?prompt=login`,
     token_endpoint: `${mainURL}/protocol/openid-connect/token`,
   };
 

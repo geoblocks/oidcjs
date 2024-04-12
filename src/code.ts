@@ -37,6 +37,7 @@ interface JWTPayload {
 export interface WellKnownConfig {
   authorization_endpoint: string;
   token_endpoint: string;
+  logout_endpoint: string;
 }
 
 /**
@@ -350,5 +351,25 @@ export class CodeOIDCClient {
       return this.refreshToken(refreshToken);
     }
     return "";
+  }
+
+  getActiveIdToken(): string {
+    return this.lget("id_token");
+  }
+
+  logout(document: Document) {
+    const activeIdToken = this.getActiveIdToken();
+    if (!activeIdToken) {
+      console.error("No active id token found");
+      this.lclear();
+      return;
+    }
+    const newLocation = new URL(this.wellKnown.logout_endpoint);
+    const sp = newLocation.searchParams;
+    sp.append("post_logout_redirect_uri", this.options.redirectUri);
+    sp.append("client_id", this.options.clientId);
+    sp.append("id_token_hint", activeIdToken);
+    this.lclear();
+    document.location = newLocation.toString();
   }
 }

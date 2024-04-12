@@ -15,6 +15,7 @@ function createClient(env) {
   const wellKnown = {
     authorization_endpoint: `${mainURL}/protocol/openid-connect/auth?prompt=login`,
     token_endpoint: `${mainURL}/protocol/openid-connect/token`,
+    logout_endpoint: `${mainURL}/protocol/openid-connect/logout`,
   };
 
   const client = new CodeOIDCClient(
@@ -44,35 +45,41 @@ document.querySelector("#env").addEventListener("change", (evt) => {
 
 try {
   // When the demo starts, try to finish the login process
-  await client.handleStateIfInURL(new URLSearchParams(document.location.search)).then(async (status) => {
-    const resultElement = document.querySelector("#result");
-    switch (status) {
-      case "completed": {
-        console.log("Authentication just completed");
-        const preLoginUrl = localStorage.getItem("app_preLoginURL");
-        localStorage.removeItem("app_preLoginURL");
-        if (preLoginUrl) {
-          document.location = preLoginUrl;
+  const preLogoutUrl = localStorage.getItem("app_preLogoutURL");
+  if (preLogoutUrl) {
+    localStorage.removeItem("app_preLogoutURL");
+    document.location = preLogoutUrl;
+  } else {
+    await client.handleStateIfInURL(new URLSearchParams(document.location.search)).then(async (status) => {
+      const resultElement = document.querySelector("#result");
+      switch (status) {
+        case "completed": {
+          console.log("Authentication just completed");
+          const preLoginUrl = localStorage.getItem("app_preLoginURL");
+          localStorage.removeItem("app_preLoginURL");
+          if (preLoginUrl) {
+            document.location = preLoginUrl;
+            return;
+          }
+          break;
+        }
+        case "invalid":
+        case "error": {
+          resultElement.innerText = status.msg;
           return;
         }
-        break;
       }
-      case "invalid":
-      case "error": {
-        resultElement.innerText = status.msg;
+
+      const activeToken = await client.getActiveToken();
+      if (!activeToken) {
+        result.innerText = "Please log in";
         return;
       }
-    }
-
-    const activeToken = await client.getActiveToken();
-    if (!activeToken) {
-      result.innerText = "Please log in";
-      return;
-    }
-    const parsed = client.parseJwtPayload(activeToken);
-    resultElement.innerHTML = JSON.stringify(parsed, null, 2);
-    console.log("Access Token:", activeToken);
-  });
+      const parsed = client.parseJwtPayload(activeToken);
+      resultElement.innerHTML = JSON.stringify(parsed, null, 2);
+      console.log("Access Token:", activeToken);
+    });
+  }
 } catch (error) {
   document.querySelector("#result").innerText = error;
 }
@@ -84,6 +91,16 @@ document.querySelector("#login").addEventListener("click", async () => {
   try {
     const loginURL = await client.createAuthorizeAndUpdateLocalStorage(["openid", "roles"]);
     document.location = loginURL;
+  } catch (error) {
+    console.error("Error:", error);
+  }
+});
+
+// Initiate the login process when the user clicks the login button
+document.querySelector("#logout").addEventListener("click", async () => {
+  localStorage.setItem("app_preLogoutURL", document.location.href);
+  try {
+    client.logout(document);
   } catch (error) {
     console.error("Error:", error);
   }

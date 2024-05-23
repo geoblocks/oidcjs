@@ -9,7 +9,7 @@ import CodeOIDCClient from "./lib/index.js";
 function createClient(env) {
   const mainURL =
     env === "prod"
-      ? "https://keycloak.schweizmobilplus.k8s.fastforward.ch/realms/smobil"
+      ? "https://login.schweizmobil.ch/realms/smobil"
       : "https://keycloak.qa.fastforward.ch/realms/smobil-staging";
 
   const wellKnown = {

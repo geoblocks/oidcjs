@@ -324,8 +324,11 @@ export class CodeOIDCClient {
     if (!payload) {
       return false;
     }
-    // Add 30 seconds to the expiration time to account for clock skew
-    return payload.exp + 30 > Date.now() / 1000;
+    // Substract 30 seconds to the token expiration time
+    // to eagerly renew the token and give us some margin.
+    // This is necessary to account of clock discrepency between client and server.
+    // Ideally, the server also tolerate some leeway.
+    return payload.exp - 30 > Date.now() / 1000;
   }
 
   async getActiveToken(): Promise<string> {

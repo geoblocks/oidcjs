@@ -1,6 +1,6 @@
 {
   "name": "@geoblocks/oidcjs",
-  "version": "0.5.9",
+  "version": "0.5.10",
   "description": "A simple OpenID Connect client typescript implementation",
   "scripts": {
     "start": "python3 -m http.server 8000 --bind localhost",
@@ -16,7 +16,7 @@
   "main": "lib/index.js",
   "types": "lib/types/index.d.ts",
   "devDependencies": {
-    "@biomejs/biome": "1.7.0",
-    "typescript": "5.4.5"
+    "@biomejs/biome": "1.8.2",
+    "typescript": "5.5.2"
   }
 }

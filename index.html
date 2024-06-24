@@ -16,5 +16,39 @@
   </div>
   <div>Enable cors (*) + pkce (s254) + redirect URI (http://localhost:8000/)</div>
   <textarea id="result" readonly rows="20" style="width: 80%;"></textarea>
+
+  <div>
+    <ol>
+      <li>The user clicks the login button;</li>
+      <li>The frontend navigates to the auth URL, which contains:
+        <ul>
+          <li>response_type=code // this is the <b>code</b> flow</li>
+          <li>client_id=schweizmobil-website // this is provided by the SSO</li>
+          <li>redirect_uri=http://localhost:8000& // this an <b>exact</b> URL that must match the one configured in the SSO</li>
+          <li>scope=openid+roles // are the scopes that should be present in the generated token</li>
+          <li>state=xx nonce=xx code_challenge=xx code_challenge_method=S256 // these are for security of the protocol and handled automatically</li>
+        </ul>
+      </li>
+      <li>The SSO displays the login form, then navigates to the frontend</li>
+      <li>The frontend parses the URL:
+        <ul>
+          <li>state=ScqT1B6mGWsExDiV // this must be the same as what we sent</li>
+          <li>session_state=xx // we ignore that</li>
+          <li>iss=xx // this is a string to identify the issuer, we ignore it</li>
+          <li>code=xxxxx / this is a secret, not our token!</li>
+        </ul>
+      </li>
+      <li>The frontend fetches the JWT token:
+        <ul>
+          <li>grant_type=authorization_code // no more blabla, give me the token now</li>
+          <li>client_id=schweizmobil-website // same as before</li>
+          <li>redirect_uri=xx // same as before</li>
+          <li>code=xx // the secret we just received</li>
+          <li>pkce=yy // the pkce secret we created at the very beginning</li>
+        </ul>
+      </li>
+      <li>The frontend navigates to the initial URL and uses the token</li>
+    </ol>
+  </div>
 </body>
 </html>

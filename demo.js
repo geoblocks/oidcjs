@@ -1,5 +1,28 @@
 import CodeOIDCClient from "./lib/index.js";
 
+// These are test envs
+const envs = {
+  google: {
+    wellKnown: {
+      // See https://developers.google.com/identity/openid-connect/openid-connect#discovery
+      authorization_endpoint: "https://accounts.google.com/o/oauth2/v2/auth",
+      token_endpoint: "https://oauth2.googleapis.com/token",
+    },
+    options: {
+      // This is the URI that keycloak will use to finish the authentication process
+      // It must be an exact URL, not a prefix.
+      redirectUri: "http://localhost:8000/",
+      // The client ID is provided by your SSO server
+      clientId: "494959279176-2tq0hm0i4u36c60olsnmng9sfpeqs8m1.apps.googleusercontent.com",
+      // PKCE is an optional security feature, that must be enabled in your SSO server.
+      clientSecret: "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",
+      accessType: "offline",
+      pkce: false,
+      debug: true,
+    },
+  },
+};
+
 /**
  * For this demo we support connecting to integration and production Keycloaks.
  * In a real application you can directly instantiate the client with the correct configuration.
@@ -7,36 +30,16 @@ import CodeOIDCClient from "./lib/index.js";
  * @return {CodeOICClient}
  */
 function createClient(env) {
-  const mainURL =
-    env === "prod"
-      ? "https://login.schweizmobil.ch/realms/smobil"
-      : "https://keycloak.qa.fastforward.ch/realms/smobil-staging";
-
-  const wellKnown = {
-    authorization_endpoint: `${mainURL}/protocol/openid-connect/auth?prompt=login`,
-    token_endpoint: `${mainURL}/protocol/openid-connect/token`,
-    logout_endpoint: `${mainURL}/protocol/openid-connect/logout`,
-  };
-
-  const client = new CodeOIDCClient(
-    {
-      // This is the URI that keycloak will use to finish the authentication process
-      // It must be an exact URL, not a prefix.
-      redirectUri: "http://localhost:8000/",
-      // The client ID is provided by your SSO server
-      clientId: "schweizmobil-website",
-      // PKCE is an optional security feature, that must be enabled in your SSO server.
-      pkce: true,
-    },
-    // You can create the well-known configuration yourself or retrieve it from your SSO server.
-    wellKnown,
-  );
+  const envConfig = envs.google;
+  const client = new CodeOIDCClient(envConfig.options, envConfig.wellKnown);
 
   return client;
 }
 
 const env = localStorage.getItem("env") || "staging";
 let client = createClient(env);
+window.client = client;
+console.log("For the demo, access the client from window.client");
 document.querySelector("#env").addEventListener("change", (evt) => {
   const env = evt.target.selectedOptions[0].value;
   localStorage.setItem("env", env);
@@ -50,9 +53,9 @@ try {
     localStorage.removeItem("app_preLogoutURL");
     document.location = preLogoutUrl;
   } else {
-    await client.handleStateIfInURL(new URLSearchParams(document.location.search)).then(async (status) => {
+    await client.handleStateIfInURL(new URLSearchParams(document.location.search)).then(async (statusResult) => {
       const resultElement = document.querySelector("#result");
-      switch (status) {
+      switch (statusResult.status) {
         case "completed": {
           console.log("Authentication just completed");
           const preLoginUrl = localStorage.getItem("app_preLoginURL");
@@ -65,7 +68,7 @@ try {
         }
         case "invalid":
         case "error": {
-          resultElement.innerText = status.msg;
+          resultElement.innerText = statusResult.msg;
           return;
         }
       }
@@ -89,7 +92,7 @@ document.querySelector("#login").addEventListener("click", async () => {
   localStorage.clear();
   localStorage.setItem("app_preLoginURL", document.location.href);
   try {
-    const loginURL = await client.createAuthorizeAndUpdateLocalStorage(["openid", "roles"]);
+    const loginURL = await client.createAuthorizeAndUpdateLocalStorage(["openid"]);
     document.location = loginURL;
   } catch (error) {
     console.error("Error:", error);

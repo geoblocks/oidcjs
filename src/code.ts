@@ -2,7 +2,7 @@ import { generateRandomString, base64urlEncode, sha256, base64urlDecode } from "
 
 /**
  * The result of handling the state in the URL.
- * - "finished" means the authentication process has finished successfully;
+ * - "completed" means the authentication process has finished successfully;
  * - "nothing" means that there was no state in the URL to handle;
  * - "invalid" means that there was a mismatch between the stored state and URL params;
  * - "error" means there was an error.
@@ -37,7 +37,8 @@ interface JWTPayload {
 export interface WellKnownConfig {
   authorization_endpoint: string;
   token_endpoint: string;
-  logout_endpoint: string;
+  // Logout endpoint if existing
+  logout_endpoint?: string;
 }
 
 /**
@@ -45,6 +46,8 @@ export interface WellKnownConfig {
  */
 export interface CodeOICClientOptions {
   clientId: string;
+  clientSecret?: string;
+  accessType?: string;
   redirectUri: string;
   pkce?: boolean;
   checkToken?: (token: string) => Promise<boolean>;
@@ -63,6 +66,7 @@ type AuthorizationRequest = {
   nonce: string;
   code_challenge?: string;
   code_challenge_method?: string;
+  access_type?: string;
 };
 
 /**
@@ -71,6 +75,7 @@ type AuthorizationRequest = {
 type TokenRequest = {
   grant_type: "authorization_code";
   client_id: string;
+  client_secret?: string;
   redirect_uri: string;
   code: string;
   code_verifier?: string;
@@ -79,6 +84,7 @@ type TokenRequest = {
 type RefreshTokenRequest = {
   grant_type: "refresh_token";
   client_id: string;
+  client_secret?: string;
   refresh_token: string;
 };
 
@@ -86,7 +92,7 @@ type TokenResponse = {
   access_token: string;
   token_type: string;
   expires_in: number;
-  refresh_token: string;
+  refresh_token?: string;
   id_token: string;
 };
 
@@ -213,6 +219,9 @@ export class CodeOIDCClient {
       redirect_uri: this.options.redirectUri,
       code: code,
     };
+    if (this.options.clientSecret) {
+      params.client_secret = this.options.clientSecret;
+    }
     if (this.options.pkce) {
       if (debug) {
         console.log("Using PKCE");
@@ -237,9 +246,12 @@ export class CodeOIDCClient {
       body: new URLSearchParams(params),
     });
     const data: TokenResponse = await response.json();
-    const { access_token, id_token, refresh_token } = data;
-    if (!access_token || !refresh_token || !id_token) {
-      return Promise.reject("Did not reveive tokens");
+    const { access_token, id_token, refresh_token, expires_in } = data;
+    if (!access_token || !id_token) {
+      return Promise.reject("Did not reveive id or access tokens");
+    }
+    if (!refresh_token) {
+      console.log("We received no refresh token");
     }
     if (this.options.checkToken) {
       const valid = await this.options.checkToken(access_token);
@@ -247,9 +259,14 @@ export class CodeOIDCClient {
         return Promise.reject("Token is not valid");
       }
     }
+    const expiresAt = Date.now() / 1000 + (expires_in ? expires_in : 3_600 * 24 * 365 * 5);
     this.lset("access_token", access_token);
     this.lset("refresh_token", refresh_token);
+    this.lset("access_token_expires_at", expiresAt.toString());
     this.lset("id_token", id_token);
+    if (this.options.debug) {
+      console.log("doTokenQuery", access_token);
+    }
     return access_token;
   }
 
@@ -273,6 +290,9 @@ export class CodeOIDCClient {
       state: state,
       nonce: nonce,
     };
+    if (this.options.accessType) {
+      params.access_type = this.options.accessType;
+    }
     if (this.options.pkce) {
       if (debug) {
         console.log("Using a PKCE authorization");
@@ -297,16 +317,21 @@ export class CodeOIDCClient {
    *
    * @param token A well-formed token
    * @return the parsed payload or undefined if the token is not well-formed
+   * @throws if not a well formed JWT token or not in a secured browsing context
    */
   parseJwtPayload(token: string): JWTPayload {
+    if (!token) {
+      return null;
+    }
     try {
       const base64Url = token.split(".")[1];
       const buffer = base64urlDecode(base64Url);
       const decoder = new TextDecoder();
       const payload = decoder.decode(buffer);
       return JSON.parse(payload);
-    } catch {
-      return undefined;
+    } catch (e) {
+      console.error("Could not parse token", token);
+      throw e;
     }
   }
 
@@ -316,22 +341,36 @@ export class CodeOIDCClient {
       client_id: this.options.clientId,
       refresh_token: refreshToken,
     };
+    if (this.options.clientSecret) {
+      params.client_secret = this.options.clientSecret;
+    }
     return this.doTokenQuery(params);
   }
 
-  isActive(token: string): boolean {
+  /**
+   * @deprecated all tokens are not JWT
+   * @param token
+   * @returns
+   */
+  isActiveToken(token: string): boolean {
     const payload = this.parseJwtPayload(token);
     if (!payload) {
       return false;
     }
+
+    return this.isInsideValidityPeriod(payload.exp, 30);
+  }
+
+  protected isInsideValidityPeriod(expiration: number, leeway = 30): boolean {
     // Substract 30 seconds to the token expiration time
     // to eagerly renew the token and give us some margin.
     // This is necessary to account of clock discrepency between client and server.
     // Ideally, the server also tolerate some leeway.
-    return payload.exp - 30 > Date.now() / 1000;
+    return expiration - leeway > Date.now() / 1000;
   }
 
   async getActiveToken(): Promise<string> {
+    const expiresAt = this.lget("access_token_expires_at");
     const accessToken = this.lget("access_token");
     const debug = this.options.debug;
     if (!accessToken) {
@@ -340,7 +379,16 @@ export class CodeOIDCClient {
       }
       return "";
     }
-    if (this.isActive(accessToken)) {
+    if (!expiresAt) {
+      if (debug) {
+        console.log("No expires_at found");
+      }
+      return "";
+    }
+
+    // Access tokens are not guaranteed to be JWT so are not inspectable.
+    // Instead, we use the companion expires_in property. Note that it may still fail if the token was revoked.
+    if (this.isInsideValidityPeriod(Number.parseInt(expiresAt))) {
       return accessToken;
     }
     const refreshToken = this.lget("refresh_token");
@@ -350,10 +398,8 @@ export class CodeOIDCClient {
       }
       return "";
     }
-    if (this.isActive(refreshToken)) {
-      return this.refreshToken(refreshToken);
-    }
-    return "";
+    // There is no reliable way to check refresh token validity in advance, so just try using it.
+    return this.refreshToken(refreshToken);
   }
 
   getActiveIdToken(): string {
@@ -361,6 +407,11 @@ export class CodeOIDCClient {
   }
 
   logout(document: Document) {
+    if (!this.wellKnown.logout_endpoint) {
+      console.log("No logout endpoint");
+      this.lclear();
+      return;
+    }
     const activeIdToken = this.getActiveIdToken();
     if (!activeIdToken) {
       console.error("No active id token found");

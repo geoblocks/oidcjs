@@ -16,8 +16,35 @@ const envs = {
       clientId: "494959279176-2tq0hm0i4u36c60olsnmng9sfpeqs8m1.apps.googleusercontent.com",
       // PKCE is an optional security feature, that must be enabled in your SSO server.
       clientSecret: "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",
+      scopes: ["openid"],
       accessType: "offline",
       pkce: false,
+      debug: true,
+    },
+  },
+  gmfngv: {
+    wellKnown: {
+      authorization_endpoint: "https://sso.geomapfish-demo.prod.apps.gs-ch-prod.camptocamp.com/oauth/v2/authorize",
+      token_endpoint: "https://sso.geomapfish-demo.prod.apps.gs-ch-prod.camptocamp.com/oauth/v2/token",
+    },
+    options: {
+      redirectUri: "http://localhost:8000/",
+      clientId: "294600834753305656",
+      scopes: ["openid", "offline_access"],
+      pkce: true,
+      debug: true,
+    },
+  },
+  c2cngv: {
+    wellKnown: {
+      authorization_endpoint: "https://sso.idm.camptocamp.com/auth/realms/sandbox/protocol/openid-connect/auth",
+      token_endpoint: "https://sso.idm.camptocamp.com/auth/realms/sandbox/protocol/openid-connect/token",
+    },
+    options: {
+      redirectUri: "http://localhost:8000/",
+      clientId: "ngv-labs",
+      scopes: ["openid", "email", "profile"],
+      pkce: true,
       debug: true,
     },
   },
@@ -26,24 +53,35 @@ const envs = {
 /**
  * For this demo we support connecting to integration and production Keycloaks.
  * In a real application you can directly instantiate the client with the correct configuration.
- * @param {string} env
+ * @param {string} envName
  * @return {CodeOICClient}
  */
-function createClient(env) {
-  const envConfig = envs.google;
+function createClient(envName) {
+  const envConfig = envs[envName];
   const client = new CodeOIDCClient(envConfig.options, envConfig.wellKnown);
 
   return client;
 }
 
-const env = localStorage.getItem("env") || "staging";
+console.log("Env from storage", localStorage.getItem("env"));
+let env = localStorage.getItem("env") || "gmfngv";
+const envSelect = document.querySelector("#env");
+for (const key in envs) {
+  const option = document.createElement("option");
+  option.value = key;
+  option.text = key;
+  option.selected = key === env;
+  envSelect.appendChild(option);
+}
+
 let client = createClient(env);
 window.client = client;
 console.log("For the demo, access the client from window.client");
 document.querySelector("#env").addEventListener("change", (evt) => {
-  const env = evt.target.selectedOptions[0].value;
+  env = evt.target.selectedOptions[0].value;
   localStorage.setItem("env", env);
   client = createClient(env);
+  console.log("Created client for", env);
 });
 
 try {
@@ -90,9 +128,10 @@ try {
 // Initiate the login process when the user clicks the login button
 document.querySelector("#login").addEventListener("click", async () => {
   localStorage.clear();
+  localStorage.setItem("env", env);
   localStorage.setItem("app_preLoginURL", document.location.href);
   try {
-    const loginURL = await client.createAuthorizeAndUpdateLocalStorage(["openid"]);
+    const loginURL = await client.createAuthorizeAndUpdateLocalStorage();
     document.location = loginURL;
   } catch (error) {
     console.error("Error:", error);

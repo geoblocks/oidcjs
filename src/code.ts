@@ -47,6 +47,7 @@ export interface WellKnownConfig {
 export interface CodeOICClientOptions {
   clientId: string;
   clientSecret?: string;
+  scopes?: [string];
   accessType?: string;
   redirectUri: string;
   pkce?: boolean;
@@ -274,7 +275,7 @@ export class CodeOIDCClient {
    * Start a log in process.
    * This will redirect to the SSO and back to the provided redirect URI.
    */
-  async createAuthorizeAndUpdateLocalStorage(scopes: string[]): Promise<string> {
+  async createAuthorizeAndUpdateLocalStorage(scopes?: string[]): Promise<string> {
     const debug = this.options.debug;
     if (debug) {
       console.log("Starting loging process");
@@ -286,7 +287,7 @@ export class CodeOIDCClient {
       response_type: "code",
       client_id: this.options.clientId,
       redirect_uri: this.options.redirectUri,
-      scope: scopes.join(" "),
+      scope: (scopes || this.options.scopes).join(" "),
       state: state,
       nonce: nonce,
     };

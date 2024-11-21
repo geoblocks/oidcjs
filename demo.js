@@ -1,46 +1,87 @@
 import CodeOIDCClient from "./lib/index.js";
 
-/**
- * For this demo we support connecting to integration and production Keycloaks.
- * In a real application you can directly instantiate the client with the correct configuration.
- * @param {string} env
- * @return {CodeOICClient}
- */
-function createClient(env) {
-  const mainURL =
-    env === "prod"
-      ? "https://login.schweizmobil.ch/realms/smobil"
-      : "https://keycloak.qa.fastforward.ch/realms/smobil-staging";
-
-  const wellKnown = {
-    authorization_endpoint: `${mainURL}/protocol/openid-connect/auth?prompt=login`,
-    token_endpoint: `${mainURL}/protocol/openid-connect/token`,
-    logout_endpoint: `${mainURL}/protocol/openid-connect/logout`,
-  };
-
-  const client = new CodeOIDCClient(
-    {
+// These are test envs
+const envs = {
+  google: {
+    wellKnown: {
+      // See https://developers.google.com/identity/openid-connect/openid-connect#discovery
+      authorization_endpoint: "https://accounts.google.com/o/oauth2/v2/auth",
+      token_endpoint: "https://oauth2.googleapis.com/token",
+    },
+    options: {
       // This is the URI that keycloak will use to finish the authentication process
       // It must be an exact URL, not a prefix.
       redirectUri: "http://localhost:8000/",
       // The client ID is provided by your SSO server
-      clientId: "schweizmobil-website",
+      clientId: "494959279176-2tq0hm0i4u36c60olsnmng9sfpeqs8m1.apps.googleusercontent.com",
       // PKCE is an optional security feature, that must be enabled in your SSO server.
-      pkce: true,
+      clientSecret: "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",
+      scopes: ["openid"],
+      accessType: "offline",
+      pkce: false,
+      debug: true,
     },
-    // You can create the well-known configuration yourself or retrieve it from your SSO server.
-    wellKnown,
-  );
+  },
+  gmfngv: {
+    wellKnown: {
+      authorization_endpoint: "https://sso.geomapfish-demo.prod.apps.gs-ch-prod.camptocamp.com/oauth/v2/authorize",
+      token_endpoint: "https://sso.geomapfish-demo.prod.apps.gs-ch-prod.camptocamp.com/oauth/v2/token",
+    },
+    options: {
+      redirectUri: "http://localhost:8000/",
+      clientId: "294600834753305656",
+      scopes: ["openid", "offline_access"],
+      pkce: true,
+      debug: true,
+    },
+  },
+  c2cngv: {
+    wellKnown: {
+      authorization_endpoint: "https://sso.idm.camptocamp.com/auth/realms/sandbox/protocol/openid-connect/auth",
+      token_endpoint: "https://sso.idm.camptocamp.com/auth/realms/sandbox/protocol/openid-connect/token",
+    },
+    options: {
+      redirectUri: "http://localhost:8000/",
+      clientId: "ngv-labs",
+      scopes: ["openid", "email", "profile"],
+      pkce: true,
+      debug: true,
+    },
+  },
+};
+
+/**
+ * For this demo we support connecting to integration and production Keycloaks.
+ * In a real application you can directly instantiate the client with the correct configuration.
+ * @param {string} envName
+ * @return {CodeOICClient}
+ */
+function createClient(envName) {
+  const envConfig = envs[envName];
+  const client = new CodeOIDCClient(envConfig.options, envConfig.wellKnown);
 
   return client;
 }
 
-const env = localStorage.getItem("env") || "staging";
+console.log("Env from storage", localStorage.getItem("env"));
+let env = localStorage.getItem("env") || "gmfngv";
+const envSelect = document.querySelector("#env");
+for (const key in envs) {
+  const option = document.createElement("option");
+  option.value = key;
+  option.text = key;
+  option.selected = key === env;
+  envSelect.appendChild(option);
+}
+
 let client = createClient(env);
+window.client = client;
+console.log("For the demo, access the client from window.client");
 document.querySelector("#env").addEventListener("change", (evt) => {
-  const env = evt.target.selectedOptions[0].value;
+  env = evt.target.selectedOptions[0].value;
   localStorage.setItem("env", env);
   client = createClient(env);
+  console.log("Created client for", env);
 });
 
 try {
@@ -50,9 +91,9 @@ try {
     localStorage.removeItem("app_preLogoutURL");
     document.location = preLogoutUrl;
   } else {
-    await client.handleStateIfInURL(new URLSearchParams(document.location.search)).then(async (status) => {
+    await client.handleStateIfInURL(new URLSearchParams(document.location.search)).then(async (statusResult) => {
       const resultElement = document.querySelector("#result");
-      switch (status) {
+      switch (statusResult.status) {
         case "completed": {
           console.log("Authentication just completed");
           const preLoginUrl = localStorage.getItem("app_preLoginURL");
@@ -65,7 +106,7 @@ try {
         }
         case "invalid":
         case "error": {
-          resultElement.innerText = status.msg;
+          resultElement.innerText = statusResult.msg;
           return;
         }
       }
@@ -87,9 +128,10 @@ try {
 // Initiate the login process when the user clicks the login button
 document.querySelector("#login").addEventListener("click", async () => {
   localStorage.clear();
+  localStorage.setItem("env", env);
   localStorage.setItem("app_preLoginURL", document.location.href);
   try {
-    const loginURL = await client.createAuthorizeAndUpdateLocalStorage(["openid", "roles"]);
+    const loginURL = await client.createAuthorizeAndUpdateLocalStorage();
     document.location = loginURL;
   } catch (error) {
     console.error("Error:", error);

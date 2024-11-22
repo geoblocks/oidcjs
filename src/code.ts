@@ -47,7 +47,7 @@ export interface WellKnownConfig {
 export interface CodeOICClientOptions {
   clientId: string;
   clientSecret?: string;
-  scopes?: [string];
+  scopes?: string[];
   accessType?: string;
   redirectUri: string;
   pkce?: boolean;

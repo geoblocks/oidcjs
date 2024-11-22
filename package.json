@@ -10,15 +10,13 @@
   },
   "author": "Guillaume Beraudo",
   "license": "BSD-2-Clause",
-  "files": [
-    "lib/*"
-  ],
+  "files": ["lib/*"],
   "type": "module",
   "module": "lib/index.js",
   "main": "lib/index.js",
   "types": "lib/types/index.d.ts",
   "devDependencies": {
-    "@biomejs/biome": "1.8.2",
-    "typescript": "5.5.2"
+    "@biomejs/biome": "1.9.4",
+    "typescript": "5.6.3"
   }
 }

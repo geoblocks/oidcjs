@@ -1,6 +1,6 @@
 {
   "name": "@geoblocks/oidcjs",
-  "version": "0.5.11",
+  "version": "0.5.12",
   "description": "A simple OpenID Connect client typescript implementation",
   "scripts": {
     "start": "python3 -m http.server 8000 --bind localhost",
@@ -10,7 +10,9 @@
   },
   "author": "Guillaume Beraudo",
   "license": "BSD-2-Clause",
-  "files": ["lib/*"],
+  "files": [
+    "lib/*"
+  ],
   "type": "module",
   "module": "lib/index.js",
   "main": "lib/index.js",

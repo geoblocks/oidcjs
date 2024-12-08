@@ -37,6 +37,7 @@ interface JWTPayload {
 export interface WellKnownConfig {
   authorization_endpoint: string;
   token_endpoint: string;
+  userinfo_endpoint: string;
   // Logout endpoint if existing
   logout_endpoint?: string;
 }
@@ -426,5 +427,20 @@ export class CodeOIDCClient {
     sp.append("id_token_hint", activeIdToken);
     this.lclear();
     document.location = newLocation.toString();
+  }
+
+  /**
+   *
+   * @param token Valid access token
+   * @return the userinfo response
+   */
+  // biome-ignore lint/suspicious/noExplicitAny: User info have any shape
+  async retrieveUserInfo(token: string): Promise<any> {
+    const response = await fetch(this.wellKnown.userinfo_endpoint, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return response.json();
   }
 }

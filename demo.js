@@ -2,6 +2,21 @@ import CodeOIDCClient from "./lib/index.js";
 
 // These are test envs
 const envs = {
+  local: {
+    wellKnown: {
+      authorization_endpoint: "http://localhost:8080/oauth/v2/authorize",
+      token_endpoint: "http://localhost:8080/oauth/v2/token",
+      userinfo_endpoint: "http://localhost:8080/oidc/v1/userinfo",
+    },
+    options: {
+      redirectUri: "http://localhost:8000/",
+      clientId: "297227398095634709",
+      scopes: ["openid", "offline_access", "urn:zitadel:iam:user:metadata"],
+      prompt: "login",
+      pkce: true,
+      debug: true,
+    },
+  },
   google: {
     wellKnown: {
       // See https://developers.google.com/identity/openid-connect/openid-connect#discovery
@@ -26,6 +41,7 @@ const envs = {
     wellKnown: {
       authorization_endpoint: "https://sso.geomapfish-demo.prod.apps.gs-ch-prod.camptocamp.com/oauth/v2/authorize",
       token_endpoint: "https://sso.geomapfish-demo.prod.apps.gs-ch-prod.camptocamp.com/oauth/v2/token",
+      userinfo_endpoint: "https://sso.geomapfish-demo.prod.apps.gs-ch-prod.camptocamp.com/oidc/v1/userinfo",
     },
     options: {
       redirectUri: "http://localhost:8000/",
@@ -64,24 +80,24 @@ function createClient(envName) {
 }
 
 console.log("Env from storage", localStorage.getItem("env"));
-let env = localStorage.getItem("env") || "gmfngv";
+let envName = localStorage.getItem("env") || "gmfngv";
 const envSelect = document.querySelector("#env");
 for (const key in envs) {
   const option = document.createElement("option");
   option.value = key;
   option.text = key;
-  option.selected = key === env;
+  option.selected = key === envName;
   envSelect.appendChild(option);
 }
 
-let client = createClient(env);
+let client = createClient(envName);
 window.client = client;
 console.log("For the demo, access the client from window.client");
 document.querySelector("#env").addEventListener("change", (evt) => {
-  env = evt.target.selectedOptions[0].value;
-  localStorage.setItem("env", env);
-  client = createClient(env);
-  console.log("Created client for", env);
+  envName = evt.target.selectedOptions[0].value;
+  localStorage.setItem("env", envName);
+  client = createClient(envName);
+  console.log("Created client for", envName);
 });
 
 try {
@@ -117,8 +133,17 @@ try {
         return;
       }
       const parsed = client.parseJwtPayload(activeToken);
-      resultElement.innerHTML = JSON.stringify(parsed, null, 2);
+      const parsedIdToken = client.parseJwtPayload(client.getActiveIdToken());
+      resultElement.innerHTML = `
+      Access token: ${JSON.stringify(parsed, null, 2)}
+      ID token: ${JSON.stringify(parsedIdToken, null, 2)}
+      `;
       console.log("Access Token:", activeToken);
+
+      if (envs[envName].wellKnown.userinfo_endpoint) {
+        const userInfo = await client.retrieveUserInfo(activeToken);
+        console.log("USer info", userInfo);
+      }
     });
   }
 } catch (error) {
@@ -128,7 +153,7 @@ try {
 // Initiate the login process when the user clicks the login button
 document.querySelector("#login").addEventListener("click", async () => {
   localStorage.clear();
-  localStorage.setItem("env", env);
+  localStorage.setItem("env", envName);
   localStorage.setItem("app_preLoginURL", document.location.href);
   try {
     const loginURL = await client.createAuthorizeAndUpdateLocalStorage();

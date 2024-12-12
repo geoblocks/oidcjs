@@ -12,6 +12,7 @@ const envs = {
       redirectUri: "http://localhost:8000/",
       clientId: "297227398095634709",
       scopes: ["openid", "offline_access", "urn:zitadel:iam:user:metadata"],
+      prompt: "login",
       pkce: true,
       debug: true,
     },

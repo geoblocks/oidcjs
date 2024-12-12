@@ -52,6 +52,7 @@ export interface CodeOICClientOptions {
   accessType?: string;
   redirectUri: string;
   pkce?: boolean;
+  prompt?: string;
   checkToken?: (token: string) => Promise<boolean>;
   debug?: boolean;
 }
@@ -66,6 +67,7 @@ type AuthorizationRequest = {
   scope: string;
   state: string;
   nonce: string;
+  prompt?: string;
   code_challenge?: string;
   code_challenge_method?: string;
   access_type?: string;
@@ -292,6 +294,9 @@ export class CodeOIDCClient {
       state: state,
       nonce: nonce,
     };
+    if (this.options.prompt) {
+      params.prompt = this.options.prompt;
+    }
     if (this.options.accessType) {
       params.access_type = this.options.accessType;
     }

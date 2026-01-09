@@ -64,6 +64,20 @@ const envs = {
       debug: true,
     },
   },
+  schmdev: {
+    wellKnown: {
+      authorization_endpoint: "https://dev.login.schweizmobil.ch/oauth/authorize",
+      token_endpoint: "https://dev.login.schweizmobil.ch/oauth/token",
+      logout_endpoint: "https://dev.login.schweizmobil.ch/oauth/logout",
+    },
+    options: {
+      redirectUri: "http://localhost:8000/",
+      clientId: "c2c-dev",
+      scopes: ["openid"],
+      pkce: true,
+      debug: true,
+    },
+  },
 };
 
 /**
@@ -80,7 +94,10 @@ function createClient(envName) {
 }
 
 console.log("Env from storage", localStorage.getItem("env"));
-let envName = localStorage.getItem("env") || "gmfngv";
+let envName = localStorage.getItem("env");
+if (!envs[envName]) {
+  envName = "gmfngv";
+}
 const envSelect = document.querySelector("#env");
 for (const key in envs) {
   const option = document.createElement("option");

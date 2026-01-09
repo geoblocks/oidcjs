@@ -122,6 +122,10 @@ export class CodeOIDCClient {
     localStorage.setItem(`oidcjs_${key}`, value);
   }
 
+  private lremove(key: string) {
+    localStorage.removeItem(`oidcjs_${key}`);
+  }
+
   /**
    * Clear all localstorage keys used by this object.
    */
@@ -158,7 +162,7 @@ export class CodeOIDCClient {
       };
     }
 
-    const storedState = this.lget("state", true);
+    const storedState = this.lget("state");
 
     if (debug) {
       console.log("Handling state if in URL...");
@@ -170,8 +174,16 @@ export class CodeOIDCClient {
       };
     }
 
+    if (state !== storedState) {
+      return {
+        status: "error",
+        msg: "State does not match",
+      };
+    }
+
     const error = search.get("error");
     if (error) {
+      this.lremove("state");
       return {
         status: "error",
         msg: search.get("error_description"),
@@ -185,15 +197,10 @@ export class CodeOIDCClient {
         msg: "No code in URL",
       };
     }
-    if (state !== storedState) {
-      return {
-        status: "error",
-        msg: "State does not match",
-      };
-    }
 
     try {
       await this.retrieveAndStoreTokens(code);
+      this.lremove("state");
       return {
         status: "completed",
         msg: "Authentication procedure finished",
@@ -427,6 +434,8 @@ export class CodeOIDCClient {
     }
     const newLocation = new URL(this.wellKnown.logout_endpoint);
     const sp = newLocation.searchParams;
+    const state = generateRandomString(16);
+    sp.append("state", state);
     sp.append("post_logout_redirect_uri", this.options.redirectUri);
     sp.append("client_id", this.options.clientId);
     sp.append("id_token_hint", activeIdToken);

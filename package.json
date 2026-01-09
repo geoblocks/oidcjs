@@ -3,20 +3,23 @@
   "version": "0.5.13",
   "description": "A simple OpenID Connect client typescript implementation",
   "scripts": {
-    "start": "python3 -m http.server 8000 --bind localhost",
+    "start": "echo 'Head up: remember to npm run watch' && python3 -m http.server 8000 --bind localhost",
     "prepare": "tsc --pretty",
+    "watch": "tsc --pretty --watch",
     "format": "biome format . --write",
     "test": "biome ci ."
   },
   "author": "Guillaume Beraudo",
   "license": "BSD-2-Clause",
-  "files": ["lib/*"],
+  "files": [
+    "lib/*"
+  ],
   "type": "module",
   "module": "lib/index.js",
   "main": "lib/index.js",
   "types": "lib/types/index.d.ts",
   "devDependencies": {
-    "@biomejs/biome": "1.9.4",
-    "typescript": "5.6.3"
+    "@biomejs/biome": "2.3.11",
+    "typescript": "5.9.3"
   }
 }

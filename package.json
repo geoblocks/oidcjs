@@ -1,6 +1,6 @@
 {
   "name": "@geoblocks/oidcjs",
-  "version": "0.5.13",
+  "version": "0.5.14",
   "description": "A simple OpenID Connect client typescript implementation",
   "scripts": {
     "start": "echo 'Head up: remember to npm run watch' && python3 -m http.server 8000 --bind localhost",

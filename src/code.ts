@@ -434,6 +434,8 @@ export class CodeOIDCClient {
     }
     const newLocation = new URL(this.wellKnown.logout_endpoint);
     const sp = newLocation.searchParams;
+    const state = generateRandomString(16);
+    sp.append("state", state);
     sp.append("post_logout_redirect_uri", this.options.redirectUri);
     sp.append("client_id", this.options.clientId);
     sp.append("id_token_hint", activeIdToken);

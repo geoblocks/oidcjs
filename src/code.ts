@@ -402,7 +402,7 @@ export class CodeOIDCClient {
 
     // Access tokens are not guaranteed to be JWT so are not inspectable.
     // Instead, we use the companion expires_in property. Note that it may still fail if the token was revoked.
-    if (this.isInsideValidityPeriod(Number.parseInt(expiresAt))) {
+    if (this.isInsideValidityPeriod(Number.parseInt(expiresAt, 10))) {
       return accessToken;
     }
     const refreshToken = this.lget("refresh_token");

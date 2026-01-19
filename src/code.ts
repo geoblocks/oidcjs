@@ -349,7 +349,7 @@ export class CodeOIDCClient {
     }
   }
 
-  private async refreshToken(refreshToken: string): Promise<string> {
+  private async doRefreshToken(refreshToken: string): Promise<string> {
     const params: RefreshTokenRequest = {
       grant_type: "refresh_token",
       client_id: this.options.clientId,
@@ -405,15 +405,20 @@ export class CodeOIDCClient {
     if (this.isInsideValidityPeriod(Number.parseInt(expiresAt, 10))) {
       return accessToken;
     }
+    return this.refreshToken();
+  }
+
+  async refreshToken(): Promise<string> {
     const refreshToken = this.lget("refresh_token");
     if (!refreshToken) {
+      const debug = this.options.debug;
       if (debug) {
         console.log("No refresh token found");
       }
       return "";
     }
     // There is no reliable way to check refresh token validity in advance, so just try using it.
-    return this.refreshToken(refreshToken);
+    return this.doRefreshToken(refreshToken);
   }
 
   getActiveIdToken(): string {
